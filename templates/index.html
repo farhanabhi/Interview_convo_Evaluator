@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Interview Evaluator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .evaluator-form {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .metric-name {
+            font-weight: bold;
+        }
+        .feedback {
+            background: #e8f4fc;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Smart Interview Evaluator</h1>
+    
+    <div class="evaluator-form">
+        <div class="form-group">
+            <label for="question">Interview Question:</label>
+            <textarea id="question" placeholder="E.g., 'Tell me about yourself' or 'Describe a challenge you faced'"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="answer">Candidate Answer:</label>
+            <textarea id="answer" placeholder="Enter the candidate's response"></textarea>
+        </div>
+        
+        <button id="evaluate-btn">Evaluate Answer</button>
+    </div>
+    
+    <div class="loading" id="loading">
+        <p>Analyzing the answer...</p>
+    </div>
+    
+    <div class="results" id="results">
+        <h2>Evaluation Results</h2>
+        
+        <div id="metrics-container"></div>
+        
+        <div class="feedback">
+            <h3>Feedback</h3>
+            <p id="feedback-text"></p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('evaluate-btn').addEventListener('click', function() {
+            const question = document.getElementById('question').value.trim();
+            const answer = document.getElementById('answer').value.trim();
+            
+            if (!question || !answer) {
+                alert('Please provide both a question and an answer');
+                return;
+            }
+            
+            // Show loading, hide results
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            fetch('/evaluate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question: question,
+                    answer: answer
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                // Display metrics
+                const metricsContainer = document.getElementById('metrics-container');
+                metricsContainer.innerHTML = '';
+                
+                const metrics = [
+                    { name: 'Fluency', value: data.fluency },
+                    { name: 'Relevance', value: data.relevance },
+                    { name: 'Confidence', value: data.confidence },
+                    { name: 'Grammar', value: data.grammar },
+                    { name: 'Completeness', value: data.completeness }
+                ];
+                
+                metrics.forEach(metric => {
+                    const metricDiv = document.createElement('div');
+                    metricDiv.className = 'metric';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'metric-name';
+                    nameSpan.textContent = metric.name;
+                    
+                    const valueSpan = document.createElement('span');
+                    valueSpan.textContent = `${metric.value}/10`;
+                    
+                    metricDiv.appendChild(nameSpan);
+                    metricDiv.appendChild(valueSpan);
+                    metricsContainer.appendChild(metricDiv);
+                });
+                
+                // Display feedback
+                document.getElementById('feedback-text').textContent = data.feedback;
+                
+                // Show results
+                document.getElementById('results').style.display = 'block';
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                console.error('Error:', error);
+                alert('An error occurred during evaluation');
+            });
+        });
+    </script>
+</body>
+</html>
